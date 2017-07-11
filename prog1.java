@@ -1,6 +1,2 @@
-class Login{
+static cilass Login{
 public static void main(String args[])
-{
-System.out.println("welcome mister");
-}
-}
