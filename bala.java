@@ -1,6 +1,6 @@
-class bala{
+static class bala{
 public static void main(string args[])
 {
-system.out.println("wlcome mr.bala teja");
-}
-}
+system.out.println("wlcomdsnfnjnse mr.bala teja");
+ } 
+ }
