@@ -1,0 +1,24 @@
+# Create arrays that hold all possible data factory slice states
+$failedStates = "Failed Validation", "Timed Out", "Skip", "Failed"
+$pendingStates = "Retry Validation", "PendingValidation", "Retry", "InProgress", "PendingExecution", "Waiting"
+$finishedStates = "Ready"
+
+Write-Output $state
+# Wait while data factory slice is in pending state
+While ( Get-AzureRmDataFactorySlice -DataFactoryName $df -DatasetName $dsn -StartDateTime $sdt -EndDateTime $edt -ResourceGroupName $rgn | Where -Property State -in $pendingStates) {
+        Write-Output "Slice status is:" 
+        Get-AzureRmDataFactorySlice -DataFactoryName $df -DatasetName $dsn -StartDateTime $sdt -EndDateTime $edt -ResourceGroupName $rgn | Select -Property State
+        Write-Output "Wait 15 seconds"
+        Start-Sleep 15
+    }
+ 
+ # Since data factory slice is not pending (anymore), it is either failed or finished
+If(Get-AzureRmDataFactorySlice -DataFactoryName $df -DatasetName $dsn -StartDateTime $sdt -EndDateTime $edt -ResourceGroupName $rgn | Where -Property State -in $failedStates){
+    Write-Output "Slice failed."
+    Get-AzureRmDataFactorySlice -DataFactoryName $df -DatasetName $dsn -StartDateTime $sdt -EndDateTime $edt -ResourceGroupName $rgn | Select -Property State
+    } ElseIf (Get-AzureRmDataFactorySlice -DataFactoryName $df -DatasetName $dsn -StartDateTime $sdt -EndDateTime $edt -ResourceGroupName $rgn | Where -Property State -in $finishedStates) {
+           Write-Output "Slice finished."
+          } Else {
+           Write-Output "No State found?"
+           Get-AzureRmDataFactorySlice -DataFactoryName $df -DatasetName $dsn -StartDateTime $sdt -EndDateTime $edt -ResourceGroupName $rgn | Select -Property State
+        }
