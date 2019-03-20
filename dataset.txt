@@ -22,3 +22,66 @@ If(Get-AzureRmDataFactorySlice -DataFactoryName $df -DatasetName $dsn -StartDate
            Write-Output "No State found?"
            Get-AzureRmDataFactorySlice -DataFactoryName $df -DatasetName $dsn -StartDateTime $sdt -EndDateTime $edt -ResourceGroupName $rgn | Select -Property State
         }
+        
+        
+===================================================================================================================================
+
+
+$RG = "df"
+$DFname = "adf0320"
+
+
+Get-AzureRmDataFactory -ResourceGroupName $RG
+
+Get-AzureRmDataFactory -ResourceGroupName $RG -Name $DFname
+
+# Find the Data Factory
+$df= Get-AzureRmDataFactory -ResourceGroupName $RG -Name $DFname
+if ($df -eq $null) { Write-Host "Data Factory " $DFname " cannot be found. Check spelling and resource group name. Error: " $_ -BackgroundColor:Red }
+
+
+
+# List all DataSets in the data factory - Add the LIKE filter by name instead of * if needed such as *output*
+$DataSets = Get-AzureRmDataFactoryDataset -DataFactory $df | Where {$_.DatasetName -like "*"} | Sort-Object DatasetName
+
+# Loop over matching named DataSets
+$i = 1
+ForEach($DS in $DataSets)
+{
+Write-Host $DS.DataFactoryName "--> " $DS.DatasetName -ForegroundColor:Yellow 
+
+# List slices
+$Slices = Get-AzureRmDataFactorySlice -DataFactory $df -DatasetName $DS.DatasetName -StartDateTime 2019-03-20T10:00:00.0000000 -EndDateTime 2019-03-20T11:00:00.0000000
+
+# Reset all slices to status Waiting for the given dataset, in case there are multiple
+ForEach($S in $Slices) 
+{
+$outcome=$false
+#Write-Host $i ":" $DS.DataFactoryName "--> " $DS.DatasetName "--> Slice Start:["$S.Start"] End:["$S.End"] State:"$S.State $S.SubState -ForegroundColor:Cyan
+
+
+#Get-AzureRmDataFactoryActivityWindow  -DataFactoryName $dataFactoryName -ResourceGroupName $resourceGroupName -RunStart $runStartDateTimeUTC | ? {$PSItem.WindowState -eq 'Failed'
+
+Try {
+$outcome=Set-AzureRmDataFactorySliceStatus -DataFactory $df -DatasetName $DS.DatasetName -Status Waiting -StartDateTime 2019-03-19T12:00:00.0000000 -EndDateTime 2019-03-20T12:00:00.0000000
+
+Write-Host $i ":" $DS.DataFactoryName "--> " $DS.DatasetName "--> Slice Start:["$S.Start"] End:["$S.End"] State:"$S.State $S.SubState -ForegroundColor:Cyan
+
+Write-Host " Slice status reset to Waiting so it will run again:" $outcome -ForegroundColor:Green
+
+}
+Catch
+{
+Write-Host " Slice status reset has failed. Error: " $_ -ForegroundColor:Red
+}
+$i++
+}
+}
+
+
+
+
+
+
+
+
