@@ -113,14 +113,6 @@ $DFname = "adf0321"
 $runStartDateTimeUTC = '2019-03-20T12:00:00Z'
 
 
-
-Get-AzureRmDataFactoryActivityWindow -DataFactoryName $DFname -ResourceGroupName $RG -RunStart $runStartDateTimeUTC | SELECT PipelineName, ActivityName, ActivityType,WindowState, PercentComplete `
-| ? {$PSItem.WindowState -eq 'Failed'} 
-
-
-
-
-
 #Get-AzureRmDataFactory -ResourceGroupName $RG
 
 #Get-AzureRmDataFactory -ResourceGroupName $RG -Name $DFname
@@ -129,10 +121,19 @@ Get-AzureRmDataFactoryActivityWindow -DataFactoryName $DFname -ResourceGroupName
 $df= Get-AzureRmDataFactory -ResourceGroupName $RG -Name $DFname
 if ($df -eq $null) { Write-Host "Data Factory " $DFname " cannot be found. Check spelling and resource group name. Error: " $_ -BackgroundColor:Red }
 
+$setime = Get-AzureRmDataFactoryActivityWindow -DataFactoryName $DFname -ResourceGroupName $RG -RunStart $runStartDateTimeUTC | SELECT PipelineName, ActivityName,WindowStart,WindowEnd,ActivityType,WindowState, PercentComplete `
+| ? {$PSItem.WindowState -eq 'Failed'} 
+
+#$sdt = $setime.WindowStart
+#$edt = $setime.WindowEnd
+
+#write-host $sdt $edt
+
+
 
 
 # List all DataSets in the data factory - Add the LIKE filter by name instead of * if needed such as *output*
-$DataSets = Get-AzureRmDataFactoryDataset -DataFactory $df | Where {$_.DatasetName -like "*"} | Sort-Object DatasetName
+$DataSets = Get-AzureRmDataFactoryDataset -DataFactory $df | Where {$_.DatasetName -like "*"}  #| Sort-Object DatasetName
 
 # Loop over matching named DataSets
 $i = 1
@@ -141,7 +142,12 @@ ForEach($DS in $DataSets)
 Write-Host $DS.DataFactoryName "--> " $DS.DatasetName -ForegroundColor:Yellow 
 
 # List slices
-$Slices = Get-AzureRmDataFactorySlice -DataFactory $df -DatasetName $DS.DatasetName -StartDateTime 2019-03-20T10:00:00.0000000 -EndDateTime 2019-03-21T11:00:00.0000000
+#$Slices = Get-AzureRmDataFactorySlice -DataFactory $df -DatasetName $DS.DatasetName -StartDateTime 2019-03-20T10:00:00.0000000 -EndDateTime 2019-03-21T11:00:00.0000000
+
+$Slices = Get-AzureRmDataFactorySlice -DataFactory $df -DatasetName $DS.DatasetName -StartDateTime $setime.WindowStart -EndDateTime $setime.WindowEnd
+
+
+
 #write-host($Slices)
 
 # Reset all slices to status Waiting for the given dataset, in case there are multiple
@@ -155,7 +161,7 @@ $outcome=$false
 #Get-AzureRmDataFactoryActivityWindow  -DataFactoryName $dataFactoryName -ResourceGroupName $resourceGroupName -RunStart $runStartDateTimeUTC | ? {$PSItem.WindowState -eq 'Failed'
 
 Try {
-$outcome=Set-AzureRmDataFactorySliceStatus -DataFactory $df -DatasetName $DS.DatasetName -Status Waiting -StartDateTime 2019-03-20T12:30:00.0000000 -EndDateTime 2019-03-21T12:30:00.0000000
+$outcome=Set-AzureRmDataFactorySliceStatus -DataFactory $df -DatasetName $DS.DatasetName -Status Waiting -StartDateTime $setime.WindowStart -EndDateTime $setime.WindowEnd
 
 Write-Host $i ":" $DS.DataFactoryName "--> " $DS.DatasetName "--> Slice Start:["$S.Start"] End:["$S.End"] State:"$S.State $S.SubState -ForegroundColor:Cyan
 
@@ -169,6 +175,18 @@ Write-Host " Slice status reset has failed. Error: " $_ -ForegroundColor:Red
 $i++
 }
 }
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
