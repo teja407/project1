@@ -1,3 +1,30 @@
+$an = "azaceproddatalake01"
+$dt = Get-Date -format "yyyyMMdd"
+$exp = [System.DateTime]::Now.AddDays(30)
+$sourcepath = "/D2C/Raw" 
+$destinationpath = "/D2C/Archive"
+$rgn = "AZ-ACE-Prod-MiddleTier"
+$df = "AZ-ACE-Prod-DataFactory-01"
+$pln = "D2C-ETLProcess-SqlServerToADLS-Daily"
+$dsn = "DS-AzureDataLakeStore-Azure-dbo-vKPICustomerDatabase"
+
+
+$Conn = Get-AutomationConnection -Name AzureRunAsConnection
+Add-AzureRMAccount -ServicePrincipal -Tenant $Conn.TenantID -ApplicationId $Conn.ApplicationID -CertificateThumbprint $Conn.CertificateThumbprint
+
+$sdt = [System.DateTime]::Today.AddDays(-1).AddSeconds(-3)
+$edt = [System.DateTime]::Today.AddDays(-1)
+
+
+$apr=Set-AzureRmDataFactoryPipelineActivePeriod -DataFactoryName $df -PipelineName $pln -StartDateTime $sdt -EndDateTime $edt -ResourceGroupName $rgn
+If($apr) {
+        Write-Output "Pipeline $pln of data factory $dfn updated with StartDateTime $sdt and EndDateTime $edt."
+}
+
+$rpr = Resume-AzureRmDataFactoryPipeline -DataFactoryName $df -Name $pln -ResourceGroupName $rgn
+If($rpr){
+        Write-Output "Pipeline $pln resumed."
+}
 # Create arrays that hold all possible data factory slice states
 $failedStates = "Failed Validation", "Timed Out", "Skip", "Failed"
 $pendingStates = "Retry Validation", "PendingValidation", "Retry", "InProgress", "PendingExecution", "Waiting"
